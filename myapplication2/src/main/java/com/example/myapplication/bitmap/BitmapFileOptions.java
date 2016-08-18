@@ -18,7 +18,7 @@ import java.util.Date;
  */
 public class BitmapFileOptions {
     //200M
-    public static final long fileMaxSize = 200 * 1024;
+    public static final long fileMaxSize = 100 * 1024;
     /**
      * 获得一个图片路径，如果图片大小超过指定大小，则会进行压缩；
      * 等比例压缩
