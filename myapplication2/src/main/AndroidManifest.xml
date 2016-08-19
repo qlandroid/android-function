@@ -2,10 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.example.myapplication">
 
-
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+
     <application
         android:name=".MyApp"
         android:allowBackup="true"
@@ -16,6 +16,7 @@
         <meta-data
             android:name="UMENG_CHANNEL"
             android:value="${UMENG_CHANNEL_VALUE}" />
+
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,7 +28,9 @@
             android:name=".webview.WebViewActivity"
             android:configChanges="keyboardHidden|orientation|screenSize" />
         <activity android:name=".biaotilan.TitleActivity" />
-        <activity android:name=".bitmap.BitmapActivity"></activity>
+        <activity android:name=".bitmap.BitmapActivity" />
+        <activity android:name=".fragmenta.FragmentActivity" />
+        <activity android:name=".image3cache.Icon3CacheActivity"></activity>
     </application>
 
 </manifest>

@@ -29,6 +29,7 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 import android.widget.VideoView;
 
+import com.example.myapplication.BaseActvity;
 import com.example.myapplication.R;
 
 import java.lang.ref.WeakReference;
@@ -37,7 +38,7 @@ import butterknife.Bind;
 import butterknife.ButterKnife;
 
 @SuppressLint("SetJavaScriptEnabled")
-public class WebViewActivity extends AppCompatActivity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
+public class WebViewActivity extends BaseActvity implements View.OnClickListener, CompoundButton.OnCheckedChangeListener {
 
     private static final String TAG = "WebViewActivity";
     private static final String ACTION_TITLE = "WebView的使用";

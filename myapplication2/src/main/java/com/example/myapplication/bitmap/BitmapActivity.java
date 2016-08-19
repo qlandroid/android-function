@@ -16,6 +16,7 @@ import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.example.myapplication.BaseActvity;
 import com.example.myapplication.R;
 
 import java.io.File;
@@ -23,7 +24,7 @@ import java.io.File;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
-public class BitmapActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
+public class BitmapActivity extends BaseActvity implements AdapterView.OnItemClickListener {
 
     @Bind(R.id.show_content)
     TextView showContent;

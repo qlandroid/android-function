@@ -30,6 +30,7 @@ public  abstract class BaseAdapter<HV extends RecyclerView.ViewHolder> extends R
     public void setOnItemClickListener(OnItemClickListener listener){
         this.mOnItemClickListener = listener;
     }
+
     public void setOnItemLongClickListener(OnItemLongClickListener listener){
         this.mOnItemLongClickListener = listener;
     }

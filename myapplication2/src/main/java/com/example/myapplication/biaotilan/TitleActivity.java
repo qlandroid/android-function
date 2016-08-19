@@ -1,19 +1,22 @@
 package com.example.myapplication.biaotilan;
 
 import android.os.Bundle;
+import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
 
+import com.example.myapplication.BaseActvity;
 import com.example.myapplication.R;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 
-public class TitleActivity extends AppCompatActivity implements AdapterView.OnItemClickListener {
+public class TitleActivity extends BaseActvity implements AdapterView.OnItemClickListener {
 
     @Bind(R.id.list_view)
     ListView listView;
@@ -58,11 +61,14 @@ public class TitleActivity extends AppCompatActivity implements AdapterView.OnIt
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_title);
         ButterKnife.bind(this);
+
         ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
                 android.R.layout.simple_expandable_list_item_1, itemList);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener(this);
     }
+
+
 
     @Override
     public void onItemClick(AdapterView<?> parent, View view, int position, long id) {

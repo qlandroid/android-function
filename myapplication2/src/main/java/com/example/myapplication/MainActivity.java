@@ -11,6 +11,7 @@ import android.widget.ListView;
 
 import com.example.myapplication.biaotilan.TitleActivity;
 import com.example.myapplication.bitmap.BitmapActivity;
+import com.example.myapplication.image3cache.Icon3CacheActivity;
 import com.example.myapplication.webview.WebViewActivity;
 
 import java.util.ArrayList;
@@ -35,7 +36,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         addItem("webView的使用",WebViewActivity.class);
         addItem("设置状态栏状态", TitleActivity.class);
         addItem("照片的压缩", BitmapActivity.class);
-
+        addItem("三级缓存与异步加载图片", Icon3CacheActivity.class);
 
         initView();
 
