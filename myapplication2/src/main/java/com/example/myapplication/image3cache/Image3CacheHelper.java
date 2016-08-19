@@ -6,6 +6,7 @@ import android.os.Environment;
 import android.support.v4.util.LruCache;
 import android.util.Log;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -16,7 +17,7 @@ import java.util.HashMap;
  * Created by Administrator on 2016/8/18.
  */
 public class Image3CacheHelper {
-
+    private static final String END_NAME_JPG = ".jpg";
     private static final String TAG = "Image3CacheHelper";
     private LruCache<String,Bitmap> mLruCache ;
     private HashMap<String,SoftReference<Bitmap>> mSoftReference;
@@ -66,11 +67,33 @@ public class Image3CacheHelper {
         mLruCache =  new MyLruCache(maxBitmapMemory);
         mSoftReference = new HashMap<>();
     }
+
+    /**
+     * 将图片添加到内存当中；
+     * @param imageUrl
+     * @param bitmap
+     */
     public void add(String imageUrl ,Bitmap bitmap){
-        mLruCache.put(imageUrl,bitmap);
+        //http://www.zbjuran.com/uploads/allimg/160819/7-160Q91111213A.jpg
+        String imageName = getImageNameString(imageUrl);
+        Log.i(TAG, "getImageNameString: 传入名字进行切割" + imageName);
+        mLruCache.put(imageName,bitmap);
+    }
+
+    /**
+     * 将字符串切割；
+     * @param imageUrl
+     * @return
+     */
+    private String getImageNameString(String imageUrl) {
+        //http://www.zbjuran.com/uploads/allimg/160819/7-160Q91111213A.jpg
+        String[] split = imageUrl.split("\\/");
+
+        return split[split.length - 1]+ END_NAME_JPG;
     }
 
     public boolean isSaveBitmap(String imageUrl){
+
         if (getBitmap(imageUrl)!= null){
             return true;
         }
@@ -78,19 +101,21 @@ public class Image3CacheHelper {
     }
 
     public Bitmap getBitmap(String bitmapUrl){
+        String imageName = getImageNameString(bitmapUrl);
         Bitmap bitmap = null;
-        bitmap =mLruCache.get(bitmapUrl);
+        bitmap =mLruCache.get(imageName);
         if (bitmap != null){
             return bitmap;
         }
-        SoftReference<Bitmap> softReference =mSoftReference.get(bitmapUrl);
+        SoftReference<Bitmap> softReference =mSoftReference.get(imageName);
         if (softReference != null){
             bitmap = softReference.get();
             if (bitmap != null){
                 return bitmap;
             }
         }
-        String bitmapSavePath = getBitmapSavePath(bitmapUrl);
+
+        String bitmapSavePath = getBitmapSavePath(imageName);
         bitmap = BitmapFactory.decodeFile(bitmapSavePath);
         return bitmap;
     }
@@ -118,15 +143,23 @@ public class Image3CacheHelper {
      * @param saveFile 保存的路径；
      * @return
      */
-    private boolean saveBitmap(Bitmap oldValue, String saveFile) {
+    private boolean saveBitmap(Bitmap oldValue, String saveFile ,String imageName) {
+        File saveFileDocument = new File(saveFile,"/"+imageName);
+
         FileOutputStream fos = null;
         try {
-            fos = new FileOutputStream(saveFile);
-            oldValue.compress(Bitmap.CompressFormat.PNG,50,fos);
+            if (!saveFileDocument.exists()){
+                saveFileDocument.getParentFile().mkdirs();
+                saveFileDocument.createNewFile();
+            }
+            fos = new FileOutputStream(saveFileDocument);
+            oldValue.compress(Bitmap.CompressFormat.JPEG,70,fos);
             return true;
         } catch (FileNotFoundException e) {
             e.printStackTrace();
-        }finally {
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
             if (fos != null){
                 try {
                     fos.close();
@@ -144,11 +177,11 @@ public class Image3CacheHelper {
      * @return
      */
     public String getSaveBaseFile() {
-        String path = "";
+        String basePath = "";
         if (isSDCache){
-            path =Environment.getExternalStorageDirectory().getAbsolutePath();
+            basePath =Environment.getExternalStorageDirectory().getAbsolutePath();
         }
-        return path ;
+        return basePath ;
     }
 
     public  class MyLruCache extends LruCache<String,Bitmap>{
@@ -174,12 +207,13 @@ public class Image3CacheHelper {
             if (evicted){
                 //系统内存不足需要进行清理内存，可以将图片保存到弱引用中，并保存到手机内存中；
                 mSoftReference.put(key,new SoftReference<Bitmap>(oldValue));
-                //并保存到手机内存当中
+                //并保存到手机内存基本路径
                 String saveFile = getSaveBaseFile();
+                //获得lruCache的key也就是图片的名称iamgeName；
                 String saveBitmapName = key;
-                saveFile = createSaveFile(saveFile ,saveBitmapName);
-                Log.i(TAG, "entryRemoved: saveFile =" +saveFile );
-                boolean isSuccess = saveBitmap(oldValue, saveFile);
+                saveFile = saveFile +"/"+FILE_DIR_NAME +"/";
+
+                boolean isSuccess = saveBitmap(oldValue, saveFile,saveBitmapName);
                 Log.i(TAG, "entryRemoved: isSuccess =" +isSuccess );
             }
         }

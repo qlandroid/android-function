@@ -52,7 +52,7 @@ public abstract class CommonAdapter<E> extends BaseAdapter {
 	public View getView(int position, View convertView, ViewGroup parent) {
 		ViewHolder holder = ViewHolder.getViewHolder(mContext, convertView, layoutId);
 		
-		setItemContent(holder, getItem(position));
+		setItemContent(holder, getItem(position),position);
 		
 		return holder.getConvertView();
 	}
@@ -61,8 +61,9 @@ public abstract class CommonAdapter<E> extends BaseAdapter {
 	 * 设置item中各控件显示的内容
 	 * @param holder
 	 * @param e
+	 * @param position
 	 */
-	public abstract void setItemContent(ViewHolder holder, E e);
+	public abstract void setItemContent(ViewHolder holder, E e, int position);
 	
 	/**
 	 * 持有者类（内部类）

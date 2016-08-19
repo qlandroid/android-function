@@ -6,6 +6,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.ImageView;
 import android.widget.ListView;
 
@@ -28,6 +29,8 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
     PullToRefreshListView listView;
     private int page = 1;
 
+    private boolean isFirst =false;
+
     private List<JokeBean.ShowapiResBodyBean.ContentlistBean> mListBean = new ArrayList<>();
     private MyAdapter adapter;
     private Handler mHandler = new Handler() {
@@ -35,7 +38,11 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
         public void handleMessage(Message msg) {
             super.handleMessage(msg);
             Log.i(TAG, "handleMessage: " + Thread.currentThread().getName());
+            //由于重新加载图片，需要还原初始化；
+            adapter.setIsFirst(true);
+            //更新适配器
             adapter.updata(mListBean);
+            //取消加载提示条；
             listView.onRefreshComplete();
         }
     };
@@ -47,13 +54,54 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
         ButterKnife.bind(this);
         initListView();
 
+        //下载网络数据
         downLoad();
     }
 
     private void initListView() {
         adapter = new MyAdapter(this, mListBean, R.layout.icon_item);
         listView.setAdapter(adapter);
+        //设置滑动监听，在滑动状态取消加载；
+        listView.setOnScrollListener(new AbsListView.OnScrollListener() {
+            int startIndex ;
+            int endIndex;
+            @Override
+            public void onScrollStateChanged(AbsListView view, int scrollState) {
+                adapter.setIsFirst(false);
+                switch (scrollState){
+                    case SCROLL_STATE_IDLE://停止滑动状态
+                        loadingImage();
+                        break;
+                }
+            }
 
+            private void loadingImage() {
+                if (startIndex < 0 ){
+                    startIndex = 0;
+                }
+                if (endIndex >= mListBean.size()){
+                    endIndex = mListBean.size();
+                }
+                for (; startIndex < endIndex ; startIndex++) {
+                    String imageUrl = mListBean.get(startIndex).getImg();
+                    ImageView iv = (ImageView) listView.findViewWithTag(imageUrl);
+
+                    if (imageUrl != null&&iv != null)
+                        IconDownLoadThreadPool.getInstance().imageLoad(iv,imageUrl);
+                }
+            }
+
+            @Override
+            public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                startIndex = firstVisibleItem-1;
+                if (visibleItemCount+firstVisibleItem < totalItemCount) {
+                    endIndex = firstVisibleItem + visibleItemCount;
+                }else {
+                    endIndex = totalItemCount;
+                }
+                Log.i(TAG, "onScroll: " + firstVisibleItem +"----" + endIndex + " listdata---->" +mListBean.size());
+            }
+        });
         listView.setMode(PullToRefreshBase.Mode.PULL_FROM_END);
         listView.setOnRefreshListener(new PullToRefreshBase.OnRefreshListener<ListView>() {
             @Override
@@ -70,8 +118,19 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
                 String data = JokeHttpUtils.request(JokeHttpUtils.httpUrl, JokeHttpUtils.getHttpArg(page));
                 Log.i(TAG, "run: " + data);
                 JokeBean bean = new Gson().fromJson(data, JokeBean.class);
+                if (bean == null){
+                    return;
+                }
 
-                mListBean.addAll(bean.getShowapi_res_body().getContentlist());
+                JokeBean.ShowapiResBodyBean showapiResBodyBean = bean.getShowapi_res_body();
+                if (showapiResBodyBean == null){
+                    return;
+                }
+                List<JokeBean.ShowapiResBodyBean.ContentlistBean> list = showapiResBodyBean.getContentlist();
+                if (list == null){
+                    return;
+                }
+                mListBean.addAll(list);
                 mHandler.sendEmptyMessage(0x002);
 
 
@@ -90,25 +149,40 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
     @Override
     protected void onDestroy() {
         listView.setAdapter(null);
+        Image3CacheHelper.getInstance().destroy();
         super.onDestroy();
     }
 
     public static class MyAdapter extends CommonAdapter<JokeBean.ShowapiResBodyBean.ContentlistBean> {
-        private final Image3CacheHelper helper;
-        IconDownLoadThreadPool iconDownLoadThreadPool;
 
+
+        //异步处理
+        IconDownLoadThreadPool iconDownLoadThreadPool;
+        //判断当前是否是需要开启异步加载显示图片；
+        private boolean isFirst = true;
+
+        public void setIsFirst(boolean isFirst){
+            this.isFirst = isFirst;
+        }
         public MyAdapter(Context context, List<JokeBean.ShowapiResBodyBean.ContentlistBean> data, int layoutId) {
             super(context, data, layoutId);
-            helper = Image3CacheHelper.getInstance();
-            iconDownLoadThreadPool = IconDownLoadThreadPool.getInstance(helper, 3, IconDownLoadThreadPool.Type.FIFI);
+            //创建异步处理对象，
+            iconDownLoadThreadPool = IconDownLoadThreadPool.getInstance(Image3CacheHelper.getInstance(), 3, IconDownLoadThreadPool.Type.FIFO);
         }
 
+
         @Override
-        public void setItemContent(ViewHolder holder, JokeBean.ShowapiResBodyBean.ContentlistBean resultBean) {
+        public void setItemContent(ViewHolder holder, JokeBean.ShowapiResBodyBean.ContentlistBean resultBean, int position) {
+
             String imageUrl = resultBean.getImg();
             ImageView itemImageView = (ImageView) holder.getViewById(R.id.imageView);
-            iconDownLoadThreadPool.imageLoad(itemImageView, imageUrl);
+            itemImageView.setTag(imageUrl);
 
+
+            itemImageView.setImageResource(R.mipmap.ic_launcher);
+            if (isFirst){
+                iconDownLoadThreadPool.imageLoad(itemImageView,imageUrl);
+            }
         }
 
     }
