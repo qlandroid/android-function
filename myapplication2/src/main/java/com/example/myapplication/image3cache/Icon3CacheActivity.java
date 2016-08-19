@@ -7,8 +7,10 @@ import android.os.Message;
 import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
+import android.widget.AdapterView;
 import android.widget.ImageView;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.example.myapplication.BaseActvity;
 import com.example.myapplication.CommonAdapter;
@@ -29,10 +31,11 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
     PullToRefreshListView listView;
     private int page = 1;
 
-    private boolean isFirst =false;
+
 
     private List<JokeBean.ShowapiResBodyBean.ContentlistBean> mListBean = new ArrayList<>();
     private MyAdapter adapter;
+    private int lastEndIndex = -1;
     private Handler mHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -40,12 +43,18 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
             Log.i(TAG, "handleMessage: " + Thread.currentThread().getName());
             //由于重新加载图片，需要还原初始化；
             adapter.setIsFirst(true);
+            //不需要开启adapter中imageView的初始化；
+            adapter.setImageInIt(false);
             //更新适配器
             adapter.updata(mListBean);
             //取消加载提示条；
             listView.onRefreshComplete();
+
+
         }
     };
+    private Thread downLoadThread;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -53,7 +62,6 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
         setContentView(R.layout.activity_icon3_cache);
         ButterKnife.bind(this);
         initListView();
-
         //下载网络数据
         downLoad();
     }
@@ -61,13 +69,22 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
     private void initListView() {
         adapter = new MyAdapter(this, mListBean, R.layout.icon_item);
         listView.setAdapter(adapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                Toast.makeText(Icon3CacheActivity.this, position +"", Toast.LENGTH_SHORT).show();
+            }
+        });
         //设置滑动监听，在滑动状态取消加载；
         listView.setOnScrollListener(new AbsListView.OnScrollListener() {
             int startIndex ;
             int endIndex;
             @Override
             public void onScrollStateChanged(AbsListView view, int scrollState) {
+
                 adapter.setIsFirst(false);
+                //滑动状态需要开启item的初始化；
+                adapter.setImageInIt(true);
                 switch (scrollState){
                     case SCROLL_STATE_IDLE://停止滑动状态
                         loadingImage();
@@ -89,6 +106,7 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
                     if (imageUrl != null&&iv != null)
                         IconDownLoadThreadPool.getInstance().imageLoad(iv,imageUrl);
                 }
+                lastEndIndex = endIndex;
             }
 
             @Override
@@ -112,7 +130,7 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
     }
 
     private void downLoad() {
-        new Thread(new Runnable() {
+        downLoadThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 String data = JokeHttpUtils.request(JokeHttpUtils.httpUrl, JokeHttpUtils.getHttpArg(page));
@@ -135,7 +153,8 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
 
 
             }
-        }).start();
+        });
+        downLoadThread.start();
 
     }
 
@@ -148,18 +167,25 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
 
     @Override
     protected void onDestroy() {
+        mHandler = null;
+        downLoadThread = null;
+        listView.setOnScrollListener(null);
         listView.setAdapter(null);
         Image3CacheHelper.getInstance().destroy();
         super.onDestroy();
     }
 
     public static class MyAdapter extends CommonAdapter<JokeBean.ShowapiResBodyBean.ContentlistBean> {
-
-
         //异步处理
         IconDownLoadThreadPool iconDownLoadThreadPool;
         //判断当前是否是需要开启异步加载显示图片；
         private boolean isFirst = true;
+        //用于判断是否需要初始化imageView；
+        private boolean isImageInIt = true;
+
+        public void setImageInIt(boolean imageInIt) {
+            isImageInIt = imageInIt;
+        }
 
         public void setIsFirst(boolean isFirst){
             this.isFirst = isFirst;
@@ -179,7 +205,10 @@ public class Icon3CacheActivity extends BaseActvity implements View.OnClickListe
             itemImageView.setTag(imageUrl);
 
 
-            itemImageView.setImageResource(R.mipmap.ic_launcher);
+            if (isImageInIt) {
+                //需要初始化，需要初始化的状态为数据已经加载完毕，item可以复用；
+                itemImageView.setImageResource(R.mipmap.ic_launcher);
+            }
             if (isFirst){
                 iconDownLoadThreadPool.imageLoad(itemImageView,imageUrl);
             }
